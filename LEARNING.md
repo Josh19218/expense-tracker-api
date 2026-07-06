@@ -78,3 +78,21 @@
 - Checking if a query result is None before acting on it prevents crashes when an id doesn't exist
 - An endpoint can accept both a path parameter and a request body at the same time
 - This project now implements full CRUD: Create (POST), Read (GET), Update (PUT), Delete (DELETE) — the standard shape of most real-world APIs
+
+## Day 5 — User Registration & Password Hashing
+
+**What I did:**
+
+- Installed passlib and python-jose for authentication
+- Added a User table (username + hashed_password) to the database
+- Built hash_password() and verify_password() using bcrypt
+- Built a POST /register endpoint that hashes passwords before storing them and rejects duplicate usernames
+- Fixed a passlib/bcrypt version compatibility issue by pinning bcrypt==4.0.1
+
+**Concepts I learned:**
+
+- Passwords should never be stored as plain text — hashing is a one-way transformation, so even if the database were leaked, the original password can't be recovered
+- bcrypt is a widely-used, secure hashing algorithm for passwords
+- verify_password() checks a plain password against a stored hash without ever reversing the hash
+- unique=True on a database column enforces that no two rows can have the same value (e.g. no duplicate usernames)
+- Package version mismatches between related libraries (passlib and bcrypt here) are a real, common issue — pinning a specific version is a valid fix
