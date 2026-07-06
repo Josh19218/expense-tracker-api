@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from auth import hash_password
 
 from database import engine, SessionLocal, Base
 import models
@@ -13,6 +14,10 @@ class ExpenseCreate(BaseModel):
   amount: float
   category: str
   description: str
+
+class UserCreate(BaseModel):
+  username: str
+  password: str
 
 def get_db():
   db = SessionLocal()
@@ -62,6 +67,21 @@ def update_expenses(expense_id: int, updated: ExpenseCreate, db: Session = Depen
   db.commit()
   db.refresh(expense)
   return expense
+
+@app.post("/register")
+def register(user: UserCreate, db: Session = Depends(get_db)):
+  existing_user = db.query(models.User).filter(models.User.username == user.username).first()
+  if existing_user:
+    return {"error": "Username already taken"}
+  
+  new_user = models.User(
+    username=user.username,
+    hashed_password=hash_password(user.password)
+  )
+  db.add(new_user)
+  db.commit()
+  db.refresh(new_user)
+  return {"message": f"User {new_user.username} created successfully"}
 
 @app.get("/expenses")
 def get_expenses(db: Session = Depends(get_db)):
