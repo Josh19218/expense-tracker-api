@@ -96,3 +96,19 @@
 - verify_password() checks a plain password against a stored hash without ever reversing the hash
 - unique=True on a database column enforces that no two rows can have the same value (e.g. no duplicate usernames)
 - Package version mismatches between related libraries (passlib and bcrypt here) are a real, common issue — pinning a specific version is a valid fix
+
+## Day 6 — Login & JWT Tokens
+
+**What I did:**
+
+- Built create_access_token() to generate signed JWT tokens
+- Built a POST /login endpoint that verifies credentials and returns a token
+- Fixed a typo (comma instead of a dot) causing a NameError
+
+**Concepts I learned:**
+
+- A JWT is a signed piece of data (e.g. username + expiry) that proves a user is logged in, without the server needing to check the database on every request
+- Tokens are signed with a SECRET_KEY only the server knows — this is a placeholder for now, and must become a real environment variable before deployment
+- "sub" is the standard JWT field for identifying who the token belongs to
+- Giving a vague "Invalid username or password" error (rather than saying specifically which was wrong) is a deliberate security practice — it avoids revealing whether a username exists
+- object.method(...) uses a dot; object,method(...) with a comma creates a tuple instead and causes a NameError when Python tries to call something that isn't there
