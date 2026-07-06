@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from auth import hash_password, verify_password, create_access_token
+from auth import hash_password, verify_password, create_access_token, decode_access_token
 
 from database import engine, SessionLocal, Base
 import models
@@ -9,6 +10,7 @@ import models
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 class ExpenseCreate(BaseModel):
   amount: float
@@ -29,48 +31,63 @@ def get_db():
     yield db
   finally:
     db.close()
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+  username = decode_access_token(token)
+  if username is None:
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+  
+  user = db.query(models.User).filter(models.User.username == username).first()
+  if user is None:
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+  
+  return user
   
 @app.get("/")
 def read_root():
   return{"message": "Expense Tracker API is running"}
 
 @app.post("/expenses")
-def add_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
-  db_expense = models.Expense(
-    amount=expense.amount,
-    category=expense.category,
-    description=expense.description
-  )
-  db.add(db_expense)
-  db.commit()
-  db.refresh(db_expense)
-  return db_expense
+def add_expense(expense: ExpenseCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    db_expense = models.Expense(
+        amount=expense.amount,
+        category=expense.category,
+        description=expense.description,
+        user_id=current_user.id
+    )
+    db.add(db_expense)
+    db.commit()
+    db.refresh(db_expense)
+    return db_expense
 
-@app.delete("/expenses/{expense_id}")
-def delete_expense(expense_id: int, db: Session = Depends(get_db)):
-  expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
-
-  if expense is None:
-    return {"error": "Expense not found"}
-  
-  db.delete(expense)
-  db.commit()
-  return {"message": f"Expense {expense_id} deleted"}
+@app.get("/expenses")
+def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.Expense).filter(models.Expense.user_id == current_user.id).all()
 
 @app.put("/expenses/{expense_id}")
-def update_expenses(expense_id: int, updated: ExpenseCreate, db: Session = Depends(get_db)):
-  expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+def update_expense(expense_id: int, updated: ExpenseCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    expense = db.query(models.Expense).filter(models.Expense.id == expense_id, models.Expense.user_id == current_user.id).first()
 
-  if expense is None:
-    return {"error": "Expense not found"}
-  
-  expense.amount = updated.amount
-  expense.category = updated.category
-  expense.description = updated.description
+    if expense is None:
+        raise HTTPException(status_code=404, detail="Expense not found")
 
-  db.commit()
-  db.refresh(expense)
-  return expense
+    expense.amount = updated.amount
+    expense.category = updated.category
+    expense.description = updated.description
+    db.commit()
+    db.refresh(expense)
+    return expense
+
+@app.delete("/expenses/{expense_id}")
+def delete_expense(expense_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    expense = db.query(models.Expense).filter(models.Expense.id == expense_id, models.Expense.user_id == current_user.id).first()
+
+    if expense is None:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    db.delete(expense)
+    db.commit()
+    return {"message": f"Expense {expense_id} deleted"}
 
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -88,15 +105,11 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
   return {"message": f"User {new_user.username} created successfully"}
 
 @app.post("/login")
-def login(credentials: LoginRequest, db: Session = Depends(get_db)):
-  user = db.query(models.User).filter(models.User.username == credentials.username).first()
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == form_data.username).first()
 
-  if user is None or not verify_password(credentials.password, user.hashed_password):
-    return {"error": "Invalid username or password"}
-  
-  token = create_access_token({"sub": user.username})
-  return {"access_token": token, "token_type": "bearer"}
+    if user is None or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
 
-@app.get("/expenses")
-def get_expenses(db: Session = Depends(get_db)):
-  return db.query(models.Expense).all()
+    token = create_access_token({"sub": user.username})
+    return {"access_token": token, "token_type": "bearer"}

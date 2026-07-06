@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, String
+from sqlalchemy import Column, Integer, Float, String, ForeignKey
 from database import Base
 
 class Expense(Base):
@@ -8,6 +8,7 @@ class Expense(Base):
   amount = Column(Float)
   category = Column(String)
   description = Column(String)
+  user_id = Column(Integer, ForeignKey("users.id"))
 
 class User(Base):
   __tablename__ = "users"
