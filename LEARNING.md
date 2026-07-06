@@ -61,3 +61,20 @@
 - db.add() stages a new row, db.commit() saves it, db.refresh() reloads it with its generated ID
 - db.query(Model).all() retrieves all rows — different from .add(), which is for creating new rows
 - A crashed backend server can look identical to a frozen browser request — checking the terminal, not just the browser, is essential for debugging
+
+## Day 4 — Update & Delete Endpoints (Full CRUD)
+
+**What I did:**
+
+- Built a DELETE /expenses/{expense_id} endpoint
+- Built a PUT /expenses/{expense_id} endpoint
+- Tested the full CRUD cycle: create, read, update, delete
+
+**Concepts I learned:**
+
+- Path parameters ({expense_id} in the URL) let an endpoint target a specific resource
+- FastAPI captures path parameters automatically and validates their type (expense_id: int)
+- .filter(Model.column == value).first() is SQLAlchemy's way of finding a single matching row
+- Checking if a query result is None before acting on it prevents crashes when an id doesn't exist
+- An endpoint can accept both a path parameter and a request body at the same time
+- This project now implements full CRUD: Create (POST), Read (GET), Update (PUT), Delete (DELETE) — the standard shape of most real-world APIs
