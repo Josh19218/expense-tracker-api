@@ -112,3 +112,21 @@
 - "sub" is the standard JWT field for identifying who the token belongs to
 - Giving a vague "Invalid username or password" error (rather than saying specifically which was wrong) is a deliberate security practice — it avoids revealing whether a username exists
 - object.method(...) uses a dot; object,method(...) with a comma creates a tuple instead and causes a NameError when Python tries to call something that isn't there
+
+## Day 7 — Protecting Endpoints & Per-User Data
+
+**What I did:**
+
+- Added a user_id foreign key column to the Expense table, linking each expense to a user
+- Built get_current_user, a dependency that decodes a JWT token and returns the logged-in user, or raises a 401 error
+- Protected all four expense endpoints (POST/GET/PUT/DELETE) so they require a valid token
+- Updated GET/PUT/DELETE to only ever act on the current user's own expenses
+- Switched /login to use FastAPI's standard OAuth2PasswordRequestForm so it works with Swagger UI's built-in Authorize button
+
+**Concepts I learned:**
+
+- ForeignKey("users.id") links one table's column to another table's primary key — this is how relational databases connect related data
+- OAuth2PasswordBearer + the Authorize button in Swagger UI follow a standard flow: send username/password as form data, get a token back, and it's attached automatically to future requests
+- A dependency (like get_current_user) can itself depend on another dependency (get_db) and on FastAPI's built-in security tools (oauth2_scheme)
+- HTTPException with a real status code (401, 404) is the correct way to signal errors in an API — much better than returning {"error": ...} with a 200 status, since real HTTP status codes let clients handle errors properly
+- Filtering every database query by the logged-in user's id is what actually enforces "you can only see your own data" — the check has to happen on every read/write, not just at login
