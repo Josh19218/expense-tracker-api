@@ -37,6 +37,32 @@ def add_expense(expense: ExpenseCreate, db: Session = Depends(get_db)):
   db.refresh(db_expense)
   return db_expense
 
+@app.delete("/expenses/{expense_id}")
+def delete_expense(expense_id: int, db: Session = Depends(get_db)):
+  expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+
+  if expense is None:
+    return {"error": "Expense not found"}
+  
+  db.delete(expense)
+  db.commit()
+  return {"message": f"Expense {expense_id} deleted"}
+
+@app.put("/expenses/{expense_id}")
+def update_expenses(expense_id: int, updated: ExpenseCreate, db: Session = Depends(get_db)):
+  expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+
+  if expense is None:
+    return {"error": "Expense not found"}
+  
+  expense.amount = updated.amount
+  expense.category = updated.category
+  expense.description = updated.description
+
+  db.commit()
+  db.refresh(expense)
+  return expense
+
 @app.get("/expenses")
 def get_expenses(db: Session = Depends(get_db)):
   return db.query(models.Expense).all()
