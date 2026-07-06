@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from auth import hash_password
+from auth import hash_password, verify_password, create_access_token
 
 from database import engine, SessionLocal, Base
 import models
@@ -16,6 +16,10 @@ class ExpenseCreate(BaseModel):
   description: str
 
 class UserCreate(BaseModel):
+  username: str
+  password: str
+
+class LoginRequest(BaseModel):
   username: str
   password: str
 
@@ -82,6 +86,16 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
   db.commit()
   db.refresh(new_user)
   return {"message": f"User {new_user.username} created successfully"}
+
+@app.post("/login")
+def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+  user = db.query(models.User).filter(models.User.username == credentials.username).first()
+
+  if user is None or not verify_password(credentials.password, user.hashed_password):
+    return {"error": "Invalid username or password"}
+  
+  token = create_access_token({"sub": user.username})
+  return {"access_token": token, "token_type": "bearer"}
 
 @app.get("/expenses")
 def get_expenses(db: Session = Depends(get_db)):
