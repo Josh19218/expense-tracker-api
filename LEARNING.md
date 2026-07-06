@@ -25,3 +25,20 @@
 - @app.get("/") is a decorator that tells FastAPI which function handles requests to a given URL
 - FastAPI automatically converts returned Python dictionaries into JSON responses
 - FastAPI auto-generates interactive API docs at /docs, based directly on your code
+
+## Day 2 — POST/GET Endpoints & Pydantic Validation
+
+**What I did:**
+
+- Defined an Expense model using Pydantic's BaseModel
+- Built a POST /expenses endpoint to add a new expense
+- Built a GET /expenses endpoint to retrieve all expenses
+- Tested both endpoints using the Swagger UI at /docs
+
+**Concepts I learned:**
+
+- Pydantic models (class Expense(BaseModel)) define the expected shape of data using type hints
+- FastAPI automatically validates incoming request data against a Pydantic model, rejecting bad data with a clear 422 error — no manual try/except needed
+- @app.post(...) handles incoming data (like creating something new), @app.get(...) retrieves data
+- A function parameter typed as a Pydantic model (expense: Expense) tells FastAPI to parse and validate the request body automatically
+- Swagger UI's "Try it out" lets you send real test requests directly from the browser, no separate tool needed
