@@ -62,6 +62,7 @@ A full day-by-day breakdown is in [LEARNING.md](LEARNING.md).
 ## Related project
 
 This is a web API rebuild of my original [Expense Tracker CLI](https://github.com/Josh19218/expense-tracker) — a command-line version of the same concept, built first to learn core Python fundamentals.
+A [React frontend](https://github.com/Josh19218/expense-tracker-frontend) also connects to this API, providing a web interface for logging in and managing expenses.
 
 ## Possible future improvements
 
